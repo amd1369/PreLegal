@@ -1,20 +1,21 @@
-"""Conversational Mutual NDA drafting backed by Claude (PL-5).
+"""Conversational Mutual NDA drafting backed by an LLM via OpenRouter (PL-5).
 
 The frontend used to drive a deterministic form. Instead, the user now chats
 freely with an assistant that asks about the agreement and fills in the same
-NdaData fields. We expose Claude an ``update_nda`` tool whose input mirrors the
-fillable fields; whenever the model learns a value it calls the tool, and we
+NdaData fields. We expose the model an ``update_nda`` tool whose input mirrors
+the fillable fields; whenever the model learns a value it calls the tool, and we
 merge the result into the document that drives the live preview and PDF.
 
-Only the interaction changes — the document model and the generated agreement
-are unchanged.
+The model is reached through OpenRouter using its OpenAI-compatible API, so the
+``openai`` SDK is pointed at OpenRouter's base URL. Only the interaction and the
+provider change — the document model and the generated agreement are unchanged.
 """
 
 from __future__ import annotations
 
 import json
 
-import anthropic
+from openai import OpenAI
 
 from app.config import settings
 from app.schemas import ChatMessage, NdaData
@@ -31,73 +32,77 @@ _PARTY_PROPERTIES = {
     },
 }
 
+# OpenAI-style function tool (the shape OpenRouter expects).
 UPDATE_TOOL: dict = {
-    "name": "update_nda",
-    "description": (
-        "Record one or more fields of the Mutual NDA as you learn them from the "
-        "user. Only include fields you have new, concrete values for; omit "
-        "anything still unknown. Call this whenever the user provides or revises "
-        "a detail."
-    ),
-    "input_schema": {
-        "type": "object",
-        "additionalProperties": False,
-        "properties": {
-            "purpose": {
-                "type": "string",
-                "description": "Why Confidential Information is being shared.",
-            },
-            "effectiveDate": {
-                "type": "string",
-                "description": "Effective date in ISO format (YYYY-MM-DD).",
-            },
-            "termType": {
-                "type": "string",
-                "enum": ["expires", "untilTerminated"],
-                "description": (
-                    "'expires' if the MNDA ends after a set number of years, "
-                    "'untilTerminated' if it continues until terminated."
-                ),
-            },
-            "termYears": {
-                "type": "integer",
-                "description": "Years until the MNDA expires (when termType is 'expires').",
-            },
-            "confidentialityType": {
-                "type": "string",
-                "enum": ["years", "perpetuity"],
-                "description": (
-                    "'years' if confidentiality lasts a set number of years, "
-                    "'perpetuity' if it lasts indefinitely."
-                ),
-            },
-            "confidentialityYears": {
-                "type": "integer",
-                "description": "Years confidentiality lasts (when confidentialityType is 'years').",
-            },
-            "governingLaw": {
-                "type": "string",
-                "description": "U.S. state whose law governs the agreement (e.g. 'Delaware').",
-            },
-            "jurisdiction": {
-                "type": "string",
-                "description": "City/county and state for legal proceedings (e.g. 'New Castle, DE').",
-            },
-            "modifications": {
-                "type": "string",
-                "description": "Any changes to the standard terms; empty if none.",
-            },
-            "party1": {
-                "type": "object",
-                "additionalProperties": False,
-                "properties": _PARTY_PROPERTIES,
-                "description": "The first party to the agreement.",
-            },
-            "party2": {
-                "type": "object",
-                "additionalProperties": False,
-                "properties": _PARTY_PROPERTIES,
-                "description": "The second party to the agreement.",
+    "type": "function",
+    "function": {
+        "name": "update_nda",
+        "description": (
+            "Record one or more fields of the Mutual NDA as you learn them from "
+            "the user. Only include fields you have new, concrete values for; "
+            "omit anything still unknown. Call this whenever the user provides or "
+            "revises a detail."
+        ),
+        "parameters": {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "purpose": {
+                    "type": "string",
+                    "description": "Why Confidential Information is being shared.",
+                },
+                "effectiveDate": {
+                    "type": "string",
+                    "description": "Effective date in ISO format (YYYY-MM-DD).",
+                },
+                "termType": {
+                    "type": "string",
+                    "enum": ["expires", "untilTerminated"],
+                    "description": (
+                        "'expires' if the MNDA ends after a set number of years, "
+                        "'untilTerminated' if it continues until terminated."
+                    ),
+                },
+                "termYears": {
+                    "type": "integer",
+                    "description": "Years until the MNDA expires (when termType is 'expires').",
+                },
+                "confidentialityType": {
+                    "type": "string",
+                    "enum": ["years", "perpetuity"],
+                    "description": (
+                        "'years' if confidentiality lasts a set number of years, "
+                        "'perpetuity' if it lasts indefinitely."
+                    ),
+                },
+                "confidentialityYears": {
+                    "type": "integer",
+                    "description": "Years confidentiality lasts (when confidentialityType is 'years').",
+                },
+                "governingLaw": {
+                    "type": "string",
+                    "description": "U.S. state whose law governs the agreement (e.g. 'Delaware').",
+                },
+                "jurisdiction": {
+                    "type": "string",
+                    "description": "City/county and state for legal proceedings (e.g. 'New Castle, DE').",
+                },
+                "modifications": {
+                    "type": "string",
+                    "description": "Any changes to the standard terms; empty if none.",
+                },
+                "party1": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "properties": _PARTY_PROPERTIES,
+                    "description": "The first party to the agreement.",
+                },
+                "party2": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "properties": _PARTY_PROPERTIES,
+                    "description": "The second party to the agreement.",
+                },
             },
         },
     },
@@ -152,13 +157,17 @@ def _merge(data: NdaData, tool_input: dict) -> NdaData:
 def run_chat(messages: list[ChatMessage], data: NdaData) -> tuple[str, NdaData]:
     """Run one assistant turn: returns the reply text and the updated document.
 
-    Raises anthropic.AnthropicError on API failure and ValueError if the API
-    key is not configured.
+    Raises openai.OpenAIError on API failure and ValueError if the API key is
+    not configured.
     """
-    if not settings.anthropic_api_key:
-        raise ValueError("ANTHROPIC_API_KEY is not configured")
+    if not settings.openrouter_api_key:
+        raise ValueError("OPENROUTER_API_KEY is not configured")
 
-    client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+    client = OpenAI(
+        api_key=settings.openrouter_api_key,
+        base_url=settings.openrouter_base_url,
+        default_headers={"X-Title": "PreLegal"},
+    )
 
     system = (
         SYSTEM_PROMPT
@@ -166,39 +175,54 @@ def run_chat(messages: list[ChatMessage], data: NdaData) -> tuple[str, NdaData]:
         + json.dumps(data.model_dump(by_alias=True), indent=2)
     )
 
-    api_messages = [{"role": m.role, "content": m.content} for m in messages]
+    api_messages: list[dict] = [{"role": "system", "content": system}]
+    api_messages += [{"role": m.role, "content": m.content} for m in messages]
     reply_parts: list[str] = []
 
-    # Agentic loop: apply each update_nda call and continue until Claude is done.
+    # Agentic loop: apply each update_nda call and continue until the model is done.
     for _ in range(10):  # generous safety bound on tool round-trips
-        response = client.messages.create(
+        response = client.chat.completions.create(
             model=settings.chat_model,
             max_tokens=settings.chat_max_tokens,
-            system=system,
-            tools=[UPDATE_TOOL],
             messages=api_messages,
+            tools=[UPDATE_TOOL],
         )
+        message = response.choices[0].message
 
-        tool_results = []
-        for block in response.content:
-            if block.type == "text":
-                reply_parts.append(block.text)
-            elif block.type == "tool_use" and block.name == "update_nda":
-                data = _merge(data, block.input)
-                tool_results.append(
-                    {
-                        "type": "tool_result",
-                        "tool_use_id": block.id,
-                        "content": "Recorded.",
-                    }
-                )
+        if message.content:
+            reply_parts.append(message.content)
 
-        if response.stop_reason != "tool_use":
+        if not message.tool_calls:
             break
 
-        # Feed the tool results back so Claude can continue its reply.
-        api_messages.append({"role": "assistant", "content": response.content})
-        api_messages.append({"role": "user", "content": tool_results})
+        # Echo the assistant turn (with its tool calls) before the tool results.
+        api_messages.append(
+            {
+                "role": "assistant",
+                "content": message.content or "",
+                "tool_calls": [
+                    {
+                        "id": call.id,
+                        "type": "function",
+                        "function": {
+                            "name": call.function.name,
+                            "arguments": call.function.arguments,
+                        },
+                    }
+                    for call in message.tool_calls
+                ],
+            }
+        )
+        for call in message.tool_calls:
+            if call.function.name == "update_nda":
+                try:
+                    args = json.loads(call.function.arguments or "{}")
+                except json.JSONDecodeError:
+                    args = {}
+                data = _merge(data, args)
+            api_messages.append(
+                {"role": "tool", "tool_call_id": call.id, "content": "Recorded."}
+            )
 
     reply = "\n\n".join(part.strip() for part in reply_parts if part.strip())
     return reply, data

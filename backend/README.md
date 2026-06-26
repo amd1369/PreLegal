@@ -9,8 +9,9 @@ the AI chat that drives the Mutual NDA assistant (PL-5).
 - **SQLAlchemy 2.0** — ORM
 - **SQLite** — temporary database (`backend/prelegal.db`, gitignored). Swap
   `DATABASE_URL` to move to Postgres later.
-- **Anthropic SDK** — Claude (`claude-opus-4-8`) powers the `/api/chat` NDA
-  assistant. Requires `ANTHROPIC_API_KEY`.
+- **OpenAI SDK → OpenRouter** — an LLM via OpenRouter's OpenAI-compatible API
+  powers the `/api/chat` NDA assistant. Model is `CHAT_MODEL` (default
+  `openai/gpt-oss-120b:free`). Requires `OPENROUTER_API_KEY`.
 
 ## Layout
 
@@ -22,7 +23,7 @@ backend/
     database.py      # Engine, session factory, Base, get_db dependency
     models.py        # ORM models (Document)
     schemas.py       # Pydantic models (responses + NdaData / chat)
-    chat.py          # Claude-backed NDA conversation (update_nda tool loop)
+    chat.py          # OpenRouter-backed NDA conversation (update_nda tool loop)
     routers/
       health.py      # GET /api/health
       templates.py   # GET /api/templates, GET /api/templates/{filename}
@@ -38,12 +39,13 @@ backend/
 | GET    | `/api/health`              | Liveness + database connectivity check       |
 | GET    | `/api/templates`           | Common Paper template catalog                |
 | GET    | `/api/templates/{file}`    | Raw markdown for a single template           |
-| POST   | `/api/chat`                | Advance the NDA conversation one turn (Claude) |
+| POST   | `/api/chat`                | Advance the NDA conversation one turn (OpenRouter) |
 | GET    | `/docs`                    | Interactive OpenAPI docs                      |
 
 `POST /api/chat` takes the conversation so far plus the current document and
 returns `{ reply, data }` — the assistant's message and the updated NDA fields.
-It returns 503 if `ANTHROPIC_API_KEY` is not set.
+It returns 503 if `OPENROUTER_API_KEY` is not set, or 502 if OpenRouter rejects
+the key.
 
 ## Running
 

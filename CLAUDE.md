@@ -36,9 +36,11 @@ scripts/     start.sh / stop.sh to run the full stack locally
   Config in `app/config.py`, overridable via `backend/.env`.
 - Temporary database is SQLite (`backend/prelegal.db`, gitignored). Swap
   `DATABASE_URL` to move to Postgres later. See `backend/README.md`.
-- **AI chat (PL-5):** `app/chat.py` calls Claude (`claude-opus-4-8`) via the
-  `anthropic` SDK with an `update_nda` tool that fills the NDA fields. Needs
-  `ANTHROPIC_API_KEY` in `backend/.env`; `/api/chat` returns 503 if it's unset.
+- **AI chat (PL-5):** `app/chat.py` calls an LLM through **OpenRouter** (its
+  OpenAI-compatible API, via the `openai` SDK) with an `update_nda` tool that
+  fills the NDA fields. Model is `CHAT_MODEL` (default `openai/gpt-oss-120b:free`).
+  Needs `OPENROUTER_API_KEY` in `backend/.env`; `/api/chat` returns 503 if unset,
+  502 if the key is rejected.
 
 ## Frontend
 

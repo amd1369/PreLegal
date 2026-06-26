@@ -27,17 +27,17 @@ PreLegal/
   **fake login screen** gates the app: there is no real authentication yet —
   enter a name to get in.
 - **Backend** — FastAPI exposing a health check, the template catalog, and an
-  **AI chat endpoint** (`POST /api/chat`, powered by Claude) that drives the NDA
-  conversation, backed by a **temporary SQLite database** via SQLAlchemy. See
-  [backend/README.md](backend/README.md).
+  **AI chat endpoint** (`POST /api/chat`, powered by an LLM via OpenRouter) that
+  drives the NDA conversation, backed by a **temporary SQLite database** via
+  SQLAlchemy. See [backend/README.md](backend/README.md).
 
 ## Getting started
 
 Requirements: Node.js 18+, Python 3.10+.
 
-The AI chat needs an Anthropic API key. Copy `backend/.env.example` to
-`backend/.env` and set `ANTHROPIC_API_KEY` (get one at
-https://console.anthropic.com/). Without it, the app runs but `/api/chat`
+The AI chat needs an OpenRouter API key. Copy `backend/.env.example` to
+`backend/.env` and set `OPENROUTER_API_KEY` (get one at
+https://openrouter.ai/keys). Without it, the app runs but `/api/chat`
 returns a clear "not configured" error.
 
 Start both servers (bootstraps the Python venv and frontend deps on first run):
