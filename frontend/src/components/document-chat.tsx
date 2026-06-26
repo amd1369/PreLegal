@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader2Icon, SendIcon } from "lucide-react";
 
-import type { NdaData } from "@/lib/nda";
+import type { DocumentData } from "@/lib/document";
 import { API_BASE } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -14,19 +14,20 @@ interface ChatMessage {
   content: string;
 }
 
-interface NdaChatProps {
-  data: NdaData;
-  onChange: (data: NdaData) => void;
+interface DocumentChatProps {
+  data: DocumentData;
+  onChange: (data: DocumentData) => void;
 }
 
 const GREETING: ChatMessage = {
   role: "assistant",
   content:
-    "Hi! I'll help you put together a Mutual NDA through a quick conversation. " +
-    "To start, which two companies are entering into this agreement?",
+    "Hi! I can help you draft a legal agreement — NDAs, service and license " +
+    "agreements, partnership and pilot agreements, and more. What kind of " +
+    "agreement would you like to create?",
 };
 
-export function NdaChat({ data, onChange }: NdaChatProps) {
+export function DocumentChat({ data, onChange }: DocumentChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([GREETING]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -62,7 +63,7 @@ export function NdaChat({ data, onChange }: NdaChatProps) {
         const body = await res.json().catch(() => null);
         throw new Error(body?.detail ?? "The assistant could not respond.");
       }
-      const json: { reply: string; data: NdaData } = await res.json();
+      const json: { reply: string; data: DocumentData } = await res.json();
       setMessages((m) => [
         ...m,
         { role: "assistant", content: json.reply || "(no response)" },
@@ -85,7 +86,7 @@ export function NdaChat({ data, onChange }: NdaChatProps) {
   return (
     <div className="flex flex-col rounded-lg border bg-card lg:sticky lg:top-8 lg:h-[calc(100vh-7rem)] h-[70vh]">
       <div className="border-b px-4 py-3">
-        <h2 className="text-sm font-semibold">Chat with the NDA assistant</h2>
+        <h2 className="text-sm font-semibold">Chat with the drafting assistant</h2>
         <p className="text-xs text-muted-foreground">
           Describe your agreement in plain language — the preview fills in as you go.
         </p>

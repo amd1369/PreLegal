@@ -1,4 +1,4 @@
-"""Conversational Mutual NDA endpoint (PL-5)."""
+"""Conversational legal-document drafting endpoint (PL-5 NDA → PL-6 all types)."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ router = APIRouter(tags=["chat"])
 
 @router.post("/chat", response_model=ChatResponse)
 def chat(request: ChatRequest) -> ChatResponse:
-    """Advance the NDA conversation by one assistant turn.
+    """Advance the drafting conversation by one assistant turn.
 
     Takes the conversation so far plus the current document and returns the
     assistant's reply and the (possibly updated) document.

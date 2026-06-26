@@ -6,14 +6,12 @@ import {
   StyleSheet,
 } from "@react-pdf/renderer";
 import {
-  type NdaData,
+  type DocumentData,
+  type DocumentDef,
   type Party,
-  ATTRIBUTION,
-  STANDARD_TERMS,
-  describeConfidentiality,
-  describeTerm,
-  formatDate,
-} from "@/lib/nda";
+  filledFields,
+  signatureParties,
+} from "@/lib/document";
 
 const styles = StyleSheet.create({
   page: {
@@ -41,6 +39,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   fieldValue: { marginTop: 2 },
+  placeholder: { marginTop: 10, color: "#a3a3a3" },
   intro: { marginTop: 16 },
   signatureRow: { flexDirection: "row", gap: 24, marginTop: 12 },
   signatureCol: { flex: 1 },
@@ -54,15 +53,10 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   divider: { borderTopWidth: 1, borderTopColor: "#cccccc", marginVertical: 24 },
-  term: { marginBottom: 8, textAlign: "justify" },
+  term: { marginBottom: 6, textAlign: "justify" },
   termHeading: { fontFamily: "Times-Bold" },
   attribution: { fontSize: 8, color: "#737373", marginTop: 24 },
 });
-
-function fieldValue(text: string, placeholder: string) {
-  const trimmed = text.trim();
-  return trimmed || `[${placeholder}]`;
-}
 
 function Field({ label, children }: { label: string; children: string }) {
   return (
@@ -73,7 +67,7 @@ function Field({ label, children }: { label: string; children: string }) {
   );
 }
 
-function SignatureBlock({ label, party }: { label: string; party: Party }) {
+function SignatureBlock({ party }: { party: Party }) {
   const rows: [string, string][] = [
     ["Company", party.company],
     ["Signature", ""],
@@ -84,7 +78,7 @@ function SignatureBlock({ label, party }: { label: string; party: Party }) {
   ];
   return (
     <View style={styles.signatureCol}>
-      <Text style={styles.signatureHeading}>{label}</Text>
+      <Text style={styles.signatureHeading}>{party.role}</Text>
       {rows.map(([term, value]) => (
         <View key={term}>
           <Text style={styles.sigTerm}>{term}</Text>
@@ -95,49 +89,60 @@ function SignatureBlock({ label, party }: { label: string; party: Party }) {
   );
 }
 
-export function NdaDocument({ data }: { data: NdaData }) {
+export function DocumentPdf({
+  def,
+  data,
+}: {
+  def: DocumentDef;
+  data: DocumentData;
+}) {
+  const fields = filledFields(def, data);
+  const parties = signatureParties(def, data);
+
   return (
-    <Document title="Mutual Non-Disclosure Agreement" author="PreLegal">
+    <Document title={def.title} author="PreLegal">
       <Page size="LETTER" style={styles.page}>
-        <Text style={styles.title}>Mutual Non-Disclosure Agreement</Text>
+        <Text style={styles.title}>{def.title}</Text>
         <Text style={styles.subtitle}>Cover Page</Text>
 
-        <Field label="Purpose">{fieldValue(data.purpose, "Purpose")}</Field>
-        <Field label="Effective Date">{formatDate(data.effectiveDate)}</Field>
-        <Field label="MNDA Term">{describeTerm(data)}</Field>
-        <Field label="Term of Confidentiality">
-          {describeConfidentiality(data)}
-        </Field>
-        <Field label="Governing Law">
-          {fieldValue(data.governingLaw, "Fill in state")}
-        </Field>
-        <Field label="Jurisdiction">
-          {fieldValue(data.jurisdiction, "Fill in city/county and state")}
-        </Field>
-        {data.modifications.trim() ? (
-          <Field label="MNDA Modifications">{data.modifications.trim()}</Field>
-        ) : null}
+        {fields.length ? (
+          fields.map((field) => (
+            <Field key={field.key} label={field.key}>
+              {field.value.trim()}
+            </Field>
+          ))
+        ) : (
+          <Text style={styles.placeholder}>
+            [The cover-page terms will appear here as you provide them.]
+          </Text>
+        )}
 
         <Text style={styles.intro}>
-          By signing this Cover Page, each party agrees to enter into this MNDA
-          as of the Effective Date.
+          By signing this Cover Page, each party agrees to enter into this
+          agreement as of the Effective Date.
         </Text>
 
         <View style={styles.signatureRow}>
-          <SignatureBlock label="Party 1" party={data.party1} />
-          <SignatureBlock label="Party 2" party={data.party2} />
+          {parties.map((party, i) => (
+            <SignatureBlock key={i} party={party} />
+          ))}
         </View>
       </Page>
 
       <Page size="LETTER" style={styles.page}>
         <Text style={styles.sectionTitle}>Standard Terms</Text>
-        {STANDARD_TERMS.map((term) => (
-          <Text key={term.heading} style={styles.term}>
-            <Text style={styles.termHeading}>{term.heading}. </Text>
-            {term.body}
+        {def.sections.map((section, i) => (
+          <Text
+            key={i}
+            style={[styles.term, { marginLeft: section.indent * 14 }]}
+          >
+            {section.heading ? (
+              <Text style={styles.termHeading}>{section.heading}. </Text>
+            ) : null}
+            {section.body}
           </Text>
         ))}
-        <Text style={styles.attribution}>{ATTRIBUTION}</Text>
+        <Text style={styles.attribution}>{def.attribution}</Text>
       </Page>
     </Document>
   );

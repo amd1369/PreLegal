@@ -3,38 +3,39 @@
 import { useState } from "react";
 import { DownloadIcon, Loader2Icon } from "lucide-react";
 
-import type { NdaData } from "@/lib/nda";
+import {
+  type DocumentData,
+  type DocumentDef,
+  documentFileName,
+} from "@/lib/document";
 import { Button } from "@/components/ui/button";
 
-interface NdaDownloadButtonProps {
-  data: NdaData;
+interface DocumentDownloadButtonProps {
+  def: DocumentDef | null;
+  data: DocumentData;
 }
 
-function fileName(data: NdaData): string {
-  const parts = [data.party1.company, data.party2.company]
-    .map((c) => c.trim().replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, ""))
-    .filter(Boolean);
-  const base = parts.length ? parts.join("-and-") : "Mutual-NDA";
-  return `${base}-Mutual-NDA.pdf`;
-}
-
-export function NdaDownloadButton({ data }: NdaDownloadButtonProps) {
+export function DocumentDownloadButton({
+  def,
+  data,
+}: DocumentDownloadButtonProps) {
   const [generating, setGenerating] = useState(false);
 
   const handleDownload = async () => {
+    if (!def) return;
     setGenerating(true);
     try {
       // Lazily import the renderer so it never runs during server rendering.
-      const [{ pdf }, { NdaDocument }] = await Promise.all([
+      const [{ pdf }, { DocumentPdf }] = await Promise.all([
         import("@react-pdf/renderer"),
-        import("@/components/nda-document"),
+        import("@/components/document-pdf"),
       ]);
 
-      const blob = await pdf(<NdaDocument data={data} />).toBlob();
+      const blob = await pdf(<DocumentPdf def={def} data={data} />).toBlob();
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = fileName(data);
+      link.download = documentFileName(def, data);
       link.click();
       URL.revokeObjectURL(url);
     } finally {
@@ -43,7 +44,7 @@ export function NdaDownloadButton({ data }: NdaDownloadButtonProps) {
   };
 
   return (
-    <Button onClick={handleDownload} disabled={generating}>
+    <Button onClick={handleDownload} disabled={generating || !def}>
       {generating ? (
         <Loader2Icon className="animate-spin" />
       ) : (
