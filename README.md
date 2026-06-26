@@ -5,6 +5,53 @@ A platform for drafting common legal agreements.
 ## 🚧 Project Status: In Progress
 
 This project is currently under active development and is **not yet complete**.
-Work is ongoing, and the project is expected to be completed by **2026-07-02** (approximately one week from now).
+Work is ongoing, and the project is expected to be completed by **2026-07-02**.
 
-Features, documentation, and setup instructions will be added as development progresses.
+## Architecture
+
+PreLegal is a full-stack application. The V1 foundation is in place; product
+features are being built on top of it.
+
+```
+PreLegal/
+  frontend/    Next.js app (Mutual NDA creator + fake login gate)
+  backend/     FastAPI service + SQLite database
+  templates/   Common Paper legal agreement templates (markdown)
+  catalog.json Index of available templates
+  scripts/     start.sh / stop.sh to run the stack locally
+```
+
+- **Frontend** — Next.js 16 + React 19 + Tailwind. The Mutual NDA creator runs
+  client-side (form → live preview → PDF download). A **fake login screen**
+  gates the app: there is no real authentication yet — enter a name to get in.
+- **Backend** — FastAPI exposing a health check and the template catalog,
+  backed by a **temporary SQLite database** via SQLAlchemy. See
+  [backend/README.md](backend/README.md).
+
+## Getting started
+
+Requirements: Node.js 18+, Python 3.10+.
+
+Start both servers (bootstraps the Python venv and frontend deps on first run):
+
+```bash
+./scripts/start.sh
+```
+
+- Frontend → http://localhost:3000
+- Backend → http://localhost:8000 (interactive docs at `/docs`)
+
+Stop both servers:
+
+```bash
+./scripts/stop.sh
+```
+
+Ports can be overridden, e.g. `BACKEND_PORT=8001 FRONTEND_PORT=3001 ./scripts/start.sh`.
+Logs are written to `scripts/.run/`.
+
+## Templates
+
+The legal agreement templates under `templates/` come from
+[Common Paper](https://github.com/CommonPaper) and are free to use under
+CC BY 4.0. See `catalog.json` for the full list.
