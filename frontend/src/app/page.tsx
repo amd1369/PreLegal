@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 import { defaultNdaData } from "@/lib/nda";
-import { NdaForm } from "@/components/nda-form";
+import { NdaChat } from "@/components/nda-chat";
 import { NdaPreview } from "@/components/nda-preview";
 import { NdaDownloadButton } from "@/components/nda-download-button";
 import { AuthGuard } from "@/components/auth-guard";
@@ -20,7 +20,7 @@ export default function Home() {
             <div>
               <h1 className="text-lg font-semibold">PreLegal · Mutual NDA Creator</h1>
               <p className="text-sm text-muted-foreground">
-                Fill in the details, preview your agreement, and download a PDF.
+                Chat to draft your agreement, preview it, and download a PDF.
               </p>
             </div>
             <div className="flex items-center gap-4">
@@ -31,8 +31,8 @@ export default function Home() {
         </header>
 
         <main className="mx-auto grid max-w-7xl gap-8 px-6 py-8 lg:grid-cols-[minmax(0,420px)_1fr]">
-          <section aria-label="Agreement form">
-            <NdaForm data={data} onChange={setData} />
+          <section aria-label="Agreement chat">
+            <NdaChat data={data} onChange={setData} />
           </section>
 
           <section

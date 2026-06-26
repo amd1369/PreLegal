@@ -31,10 +31,14 @@ scripts/     start.sh / stop.sh to run the full stack locally
 - FastAPI app in `backend/app/`; entrypoint `app.main:app`. DB tables are
   created on startup (`init_db`).
 - Endpoints: `GET /api/health` (verifies DB connectivity), `GET /api/templates`
-  and `GET /api/templates/{filename}` (Common Paper catalog), `/docs` for
-  OpenAPI. Config in `app/config.py`, overridable via `backend/.env`.
+  and `GET /api/templates/{filename}` (Common Paper catalog),
+  `POST /api/chat` (the AI NDA assistant — see below), `/docs` for OpenAPI.
+  Config in `app/config.py`, overridable via `backend/.env`.
 - Temporary database is SQLite (`backend/prelegal.db`, gitignored). Swap
   `DATABASE_URL` to move to Postgres later. See `backend/README.md`.
+- **AI chat (PL-5):** `app/chat.py` calls Claude (`claude-opus-4-8`) via the
+  `anthropic` SDK with an `update_nda` tool that fills the NDA fields. Needs
+  `ANTHROPIC_API_KEY` in `backend/.env`; `/api/chat` returns 503 if it's unset.
 
 ## Frontend
 
@@ -44,8 +48,11 @@ scripts/     start.sh / stop.sh to run the full stack locally
 - **Auth is fake and frontend-only** (no backend, no real auth per PL-4):
   `/login` stores an entered name/email in `localStorage` (`src/lib/auth.ts`);
   `AuthGuard` gates the home page; `AccountMenu` provides sign-out.
-- The Mutual NDA creator runs entirely client-side (form → live preview → PDF).
-  It does **not** call the backend; the backend endpoints exist for future use.
+- The Mutual NDA creator is now a **freeform AI chat** (`NdaChat`): the user
+  describes the agreement, `NdaChat` POSTs the conversation + current `NdaData`
+  to `POST /api/chat`, and lifts the returned `data` into state. The
+  `NdaPreview` (live document) and PDF download remain fully client-side and
+  unchanged — only the input method changed from a form to chat.
 - See `frontend/AGENTS.md`: this is Next.js 16 with breaking changes — check
   `node_modules/next/dist/docs/` before writing framework code.
 

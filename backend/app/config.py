@@ -37,6 +37,12 @@ class Settings(BaseSettings):
         "http://127.0.0.1:3000",
     ]
 
+    # Anthropic / Claude configuration for the AI chat (PL-5).
+    # ANTHROPIC_API_KEY is read from the environment or backend/.env.
+    anthropic_api_key: str = ""
+    chat_model: str = "claude-opus-4-8"
+    chat_max_tokens: int = 4096
+
     model_config = SettingsConfigDict(
         env_file=str(BACKEND_DIR / ".env"),
         env_file_encoding="utf-8",

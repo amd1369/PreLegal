@@ -1,8 +1,7 @@
 # PreLegal Backend
 
-FastAPI service that forms the V1 foundation: a small API plus a temporary
-SQLite database. Product features remain client-side for now (see PL-4); this
-layer exists so future, backend-driven work has a place to live.
+FastAPI service for PreLegal: a small API plus a temporary SQLite database, and
+the AI chat that drives the Mutual NDA assistant (PL-5).
 
 ## Stack
 
@@ -10,6 +9,8 @@ layer exists so future, backend-driven work has a place to live.
 - **SQLAlchemy 2.0** — ORM
 - **SQLite** — temporary database (`backend/prelegal.db`, gitignored). Swap
   `DATABASE_URL` to move to Postgres later.
+- **Anthropic SDK** — Claude (`claude-opus-4-8`) powers the `/api/chat` NDA
+  assistant. Requires `ANTHROPIC_API_KEY`.
 
 ## Layout
 
@@ -20,10 +21,12 @@ backend/
     config.py        # Settings (DB URL, template paths, CORS origins)
     database.py      # Engine, session factory, Base, get_db dependency
     models.py        # ORM models (Document)
-    schemas.py       # Pydantic response models
+    schemas.py       # Pydantic models (responses + NdaData / chat)
+    chat.py          # Claude-backed NDA conversation (update_nda tool loop)
     routers/
       health.py      # GET /api/health
       templates.py   # GET /api/templates, GET /api/templates/{filename}
+      chat.py        # POST /api/chat
   requirements.txt
   .env.example
 ```
@@ -35,7 +38,12 @@ backend/
 | GET    | `/api/health`              | Liveness + database connectivity check       |
 | GET    | `/api/templates`           | Common Paper template catalog                |
 | GET    | `/api/templates/{file}`    | Raw markdown for a single template           |
+| POST   | `/api/chat`                | Advance the NDA conversation one turn (Claude) |
 | GET    | `/docs`                    | Interactive OpenAPI docs                      |
+
+`POST /api/chat` takes the conversation so far plus the current document and
+returns `{ reply, data }` — the assistant's message and the updated NDA fields.
+It returns 503 if `ANTHROPIC_API_KEY` is not set.
 
 ## Running
 
