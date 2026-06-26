@@ -7,6 +7,7 @@ import {
   filledFields,
   signatureParties,
 } from "@/lib/document";
+import { DraftDisclaimer } from "@/components/draft-disclaimer";
 
 interface DocumentPreviewProps {
   def: DocumentDef | null;
@@ -29,7 +30,9 @@ export function DocumentPreview({ def, data }: DocumentPreviewProps) {
   const parties = signatureParties(def, data);
 
   return (
-    <article className="mx-auto max-w-[816px] bg-white px-12 py-14 font-serif text-[13px] leading-relaxed text-neutral-900 shadow-sm ring-1 ring-neutral-200">
+    <div className="mx-auto max-w-[816px] space-y-3">
+      <DraftDisclaimer variant="inline" />
+      <article className="bg-white px-12 py-14 font-serif text-[13px] leading-relaxed text-neutral-900 shadow-sm ring-1 ring-neutral-200">
       <h1 className="text-center text-xl font-bold">{def.title}</h1>
       <p className="mt-2 text-center text-xs text-neutral-500">Cover Page</p>
 
@@ -77,7 +80,8 @@ export function DocumentPreview({ def, data }: DocumentPreviewProps) {
       </div>
 
       <p className="mt-10 text-[11px] text-neutral-500">{def.attribution}</p>
-    </article>
+      </article>
+    </div>
   );
 }
 

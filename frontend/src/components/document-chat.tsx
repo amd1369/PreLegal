@@ -3,23 +3,20 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader2Icon, SendIcon } from "lucide-react";
 
-import type { DocumentData } from "@/lib/document";
+import type { ChatMessage, DocumentData } from "@/lib/document";
 import { API_BASE } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
-interface ChatMessage {
-  role: "user" | "assistant";
-  content: string;
-}
-
 interface DocumentChatProps {
   data: DocumentData;
   onChange: (data: DocumentData) => void;
+  messages: ChatMessage[];
+  onMessagesChange: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
 }
 
-const GREETING: ChatMessage = {
+export const GREETING: ChatMessage = {
   role: "assistant",
   content:
     "Hi! I can help you draft a legal agreement — NDAs, service and license " +
@@ -27,8 +24,12 @@ const GREETING: ChatMessage = {
     "agreement would you like to create?",
 };
 
-export function DocumentChat({ data, onChange }: DocumentChatProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>([GREETING]);
+export function DocumentChat({
+  data,
+  onChange,
+  messages,
+  onMessagesChange,
+}: DocumentChatProps) {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,7 +44,7 @@ export function DocumentChat({ data, onChange }: DocumentChatProps) {
     if (!text || loading) return;
 
     const next: ChatMessage[] = [...messages, { role: "user", content: text }];
-    setMessages(next);
+    onMessagesChange(next);
     setInput("");
     setLoading(true);
     setError(null);
@@ -64,7 +65,7 @@ export function DocumentChat({ data, onChange }: DocumentChatProps) {
         throw new Error(body?.detail ?? "The assistant could not respond.");
       }
       const json: { reply: string; data: DocumentData } = await res.json();
-      setMessages((m) => [
+      onMessagesChange((m) => [
         ...m,
         { role: "assistant", content: json.reply || "(no response)" },
       ]);

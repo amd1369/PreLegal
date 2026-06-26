@@ -12,6 +12,7 @@ import {
   filledFields,
   signatureParties,
 } from "@/lib/document";
+import { DISCLAIMER_TEXT } from "@/lib/disclaimer";
 
 const styles = StyleSheet.create({
   page: {
@@ -56,6 +57,16 @@ const styles = StyleSheet.create({
   term: { marginBottom: 6, textAlign: "justify" },
   termHeading: { fontFamily: "Times-Bold" },
   attribution: { fontSize: 8, color: "#737373", marginTop: 24 },
+  disclaimer: {
+    fontSize: 8,
+    color: "#92400e",
+    backgroundColor: "#fffbeb",
+    borderWidth: 1,
+    borderColor: "#fde68a",
+    borderRadius: 4,
+    padding: 8,
+    marginBottom: 16,
+  },
 });
 
 function Field({ label, children }: { label: string; children: string }) {
@@ -104,6 +115,8 @@ export function DocumentPdf({
       <Page size="LETTER" style={styles.page}>
         <Text style={styles.title}>{def.title}</Text>
         <Text style={styles.subtitle}>Cover Page</Text>
+
+        <Text style={styles.disclaimer}>{DISCLAIMER_TEXT}</Text>
 
         {fields.length ? (
           fields.map((field) => (

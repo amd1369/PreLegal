@@ -1,7 +1,7 @@
-"""PreLegal FastAPI application — the V1 backend foundation.
+"""PreLegal FastAPI application.
 
-Provides health and template-catalog endpoints and initializes the temporary
-SQLite database on startup. Product features remain client-side for now.
+Provides authentication, the AI drafting chat, the document catalog, and saved
+drafts, backed by a temporary SQLite database that is reset on startup (PL-7).
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.database import init_db
-from app.routers import chat, documents, health, templates
+from app.routers import auth, chat, documents, drafts, health, templates
 
 
 @asynccontextmanager
@@ -38,8 +38,10 @@ app.add_middleware(
 )
 
 app.include_router(health.router, prefix="/api")
+app.include_router(auth.router, prefix="/api")
 app.include_router(templates.router, prefix="/api")
 app.include_router(documents.router, prefix="/api")
+app.include_router(drafts.router, prefix="/api")
 app.include_router(chat.router, prefix="/api")
 
 

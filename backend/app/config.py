@@ -44,6 +44,17 @@ class Settings(BaseSettings):
     chat_model: str = "openai/gpt-oss-120b:free"
     chat_max_tokens: int = 4096
 
+    # Authentication (PL-7). JWT_SECRET should be overridden in any real
+    # deployment; the default only exists so the preview app runs out of the box.
+    jwt_secret: str = "dev-only-change-me-prelegal-secret"
+    jwt_algorithm: str = "HS256"
+    jwt_expire_minutes: int = 60 * 24 * 7  # one week
+
+    # The temporary database is reset on startup so the schema always matches
+    # the code and no migration tooling is needed (PL-7). Set to False to keep
+    # data across restarts.
+    reset_db_on_startup: bool = True
+
     model_config = SettingsConfigDict(
         env_file=str(BACKEND_DIR / ".env"),
         env_file_encoding="utf-8",

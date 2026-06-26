@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from pydantic.alias_generators import to_camel
 
 
@@ -120,3 +121,65 @@ class ChatRequest(CamelModel):
 class ChatResponse(CamelModel):
     reply: str
     data: DocumentData
+
+
+# ---------------------------------------------------------------------------
+# Authentication & saved drafts (PL-7)
+# ---------------------------------------------------------------------------
+
+
+class SignupRequest(CamelModel):
+    email: EmailStr
+    password: str = Field(min_length=8, max_length=128)
+    name: str = Field(default="", max_length=255)
+
+
+class LoginRequest(CamelModel):
+    email: EmailStr
+    password: str
+
+
+class UserResponse(CamelModel):
+    id: int
+    email: EmailStr
+    name: str
+
+
+class AuthResponse(CamelModel):
+    token: str
+    user: UserResponse
+
+
+class DraftCreate(CamelModel):
+    template: str = ""
+    title: str = ""
+    data: DocumentData = DocumentData()
+    messages: list[ChatMessage] = []
+
+
+class DraftUpdate(CamelModel):
+    title: str = ""
+    data: DocumentData = DocumentData()
+    messages: list[ChatMessage] = []
+
+
+class DraftSummary(CamelModel):
+    """A row in the user's document history."""
+
+    id: int
+    template: str
+    title: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class DraftDetail(CamelModel):
+    """A full draft, enough to restore the editor session."""
+
+    id: int
+    template: str
+    title: str
+    data: DocumentData
+    messages: list[ChatMessage]
+    created_at: datetime
+    updated_at: datetime

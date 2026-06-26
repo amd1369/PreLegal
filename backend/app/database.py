@@ -39,8 +39,15 @@ def get_db() -> Generator[Session, None, None]:
 
 
 def init_db() -> None:
-    """Create all tables. Called on application startup."""
+    """(Re)create all tables. Called on application startup.
+
+    The V1 database is temporary (PL-7): when ``reset_db_on_startup`` is set, all
+    tables are dropped and recreated on startup so the schema always matches the
+    code and no migration tooling is needed. Data does not survive a restart.
+    """
     # Import models so they are registered on the metadata before create_all.
     from app import models  # noqa: F401
 
+    if settings.reset_db_on_startup:
+        Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
