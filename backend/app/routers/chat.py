@@ -5,9 +5,11 @@ from __future__ import annotations
 import logging
 
 import openai
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
+from app.auth import get_current_user
 from app.chat import run_chat
+from app.models import User
 from app.schemas import ChatRequest, ChatResponse
 
 logger = logging.getLogger("app.chat")
@@ -16,11 +18,14 @@ router = APIRouter(tags=["chat"])
 
 
 @router.post("/chat", response_model=ChatResponse)
-def chat(request: ChatRequest) -> ChatResponse:
+def chat(
+    request: ChatRequest, user: User = Depends(get_current_user)
+) -> ChatResponse:
     """Advance the drafting conversation by one assistant turn.
 
-    Takes the conversation so far plus the current document and returns the
-    assistant's reply and the (possibly updated) document.
+    Requires authentication: the assistant calls the paid LLM, so only signed-in
+    users may use it. Takes the conversation so far plus the current document and
+    returns the assistant's reply and the (possibly updated) document.
     """
     try:
         reply, data = run_chat(request.messages, request.data)

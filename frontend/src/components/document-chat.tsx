@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Loader2Icon, SendIcon } from "lucide-react";
 
 import type { ChatMessage, DocumentData } from "@/lib/document";
-import { API_BASE } from "@/lib/api";
+import { authFetch } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -55,9 +55,8 @@ export function DocumentChat({
     const history = next.slice(firstUser);
 
     try {
-      const res = await fetch(`${API_BASE}/api/chat`, {
+      const res = await authFetch("/api/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: history, data }),
       });
       if (!res.ok) {

@@ -7,9 +7,11 @@ out of the box with the start/stop scripts.
 
 from __future__ import annotations
 
+import secrets
 from functools import lru_cache
 from pathlib import Path
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # backend/app/config.py -> backend/ -> repository root
@@ -44,9 +46,11 @@ class Settings(BaseSettings):
     chat_model: str = "openai/gpt-oss-120b:free"
     chat_max_tokens: int = 4096
 
-    # Authentication (PL-7). JWT_SECRET should be overridden in any real
-    # deployment; the default only exists so the preview app runs out of the box.
-    jwt_secret: str = "dev-only-change-me-prelegal-secret"
+    # Authentication (PL-7). Set JWT_SECRET in any real deployment so tokens stay
+    # valid across restarts and processes. When unset we generate a strong random
+    # secret per process rather than shipping a guessable default — sessions then
+    # reset on restart, which matches the temporary, reset-on-startup database.
+    jwt_secret: str = Field(default_factory=lambda: secrets.token_urlsafe(32))
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 60 * 24 * 7  # one week
 
