@@ -3,29 +3,27 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { getUser, type SessionUser } from "@/lib/auth";
+import { getToken } from "@/lib/auth";
 
 /**
- * Client-side gate for the fake login. Renders its children only when a session
- * exists; otherwise redirects to /login. While the session is being read on the
- * client it renders nothing to avoid a flash of protected content.
+ * Client-side gate for authenticated pages. Renders its children only when a
+ * session token exists; otherwise redirects to /login. While the token is being
+ * read on the client it renders nothing to avoid a flash of protected content.
+ * (Requests themselves are still validated server-side; authFetch handles 401s.)
  */
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const [user, setUserState] = useState<SessionUser | null>(null);
-  const [checked, setChecked] = useState(false);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const current = getUser();
-    if (!current) {
+    if (!getToken()) {
       router.replace("/login");
       return;
     }
-    setUserState(current);
-    setChecked(true);
+    setReady(true);
   }, [router]);
 
-  if (!checked || !user) return null;
+  if (!ready) return null;
 
   return <>{children}</>;
 }

@@ -7,9 +7,11 @@ out of the box with the start/stop scripts.
 
 from __future__ import annotations
 
+import secrets
 from functools import lru_cache
 from pathlib import Path
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # backend/app/config.py -> backend/ -> repository root
@@ -43,6 +45,19 @@ class Settings(BaseSettings):
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
     chat_model: str = "openai/gpt-oss-120b:free"
     chat_max_tokens: int = 4096
+
+    # Authentication (PL-7). Set JWT_SECRET in any real deployment so tokens stay
+    # valid across restarts and processes. When unset we generate a strong random
+    # secret per process rather than shipping a guessable default — sessions then
+    # reset on restart, which matches the temporary, reset-on-startup database.
+    jwt_secret: str = Field(default_factory=lambda: secrets.token_urlsafe(32))
+    jwt_algorithm: str = "HS256"
+    jwt_expire_minutes: int = 60 * 24 * 7  # one week
+
+    # The temporary database is reset on startup so the schema always matches
+    # the code and no migration tooling is needed (PL-7). Set to False to keep
+    # data across restarts.
+    reset_db_on_startup: bool = True
 
     model_config = SettingsConfigDict(
         env_file=str(BACKEND_DIR / ".env"),

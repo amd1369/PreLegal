@@ -20,6 +20,11 @@ export interface FieldValue {
   value: string;
 }
 
+export interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
 /** The user's in-progress document — sent to and returned from /api/chat. */
 export interface DocumentData {
   documentType: string; // backend template id (filename); "" until chosen
@@ -104,6 +109,13 @@ export function signatureParties(def: DocumentDef, data: DocumentData): Party[] 
     });
   }
   return blocks;
+}
+
+/** A human-readable title for a saved draft, e.g. "Cloud Service Agreement — Acme & Globex". */
+export function draftTitle(def: DocumentDef | null, data: DocumentData): string {
+  const base = def?.title || "Untitled document";
+  const companies = data.parties.map((p) => p.company.trim()).filter(Boolean);
+  return companies.length ? `${base} — ${companies.join(" & ")}` : base;
 }
 
 /** A filesystem-friendly base name for the downloaded PDF. */
