@@ -4,9 +4,9 @@ Guidance for working in this repository.
 
 ## What PreLegal is
 
-A platform for drafting common legal agreements. Status: in progress, V1
-foundation in place (PL-4). Product features are built on top of that
-foundation; the only user-facing feature today is the Mutual NDA creator.
+A platform for drafting common legal agreements. Status: in progress. The V1
+foundation shipped (PL-4) and the Mutual NDA creator is now an AI chat backed by
+OpenRouter (PL-5). The NDA creator remains the only user-facing feature today.
 
 ## Repository layout
 
