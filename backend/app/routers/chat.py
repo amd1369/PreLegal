@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import logging
+
 import anthropic
 from fastapi import APIRouter, HTTPException
 
 from app.chat import run_chat
 from app.schemas import ChatRequest, ChatResponse
+
+logger = logging.getLogger("app.chat")
 
 router = APIRouter(tags=["chat"])
 
@@ -26,7 +30,15 @@ def chat(request: ChatRequest) -> ChatResponse:
             status_code=503,
             detail="The chat assistant is not configured (missing ANTHROPIC_API_KEY).",
         )
-    except anthropic.AnthropicError:
+    except (anthropic.AuthenticationError, anthropic.PermissionDeniedError) as exc:
+        # The key is present but rejected by Anthropic (invalid/expired/no access).
+        logger.error("Anthropic rejected the API key: %s", exc)
+        raise HTTPException(
+            status_code=502,
+            detail="The chat assistant's API key is invalid. Check ANTHROPIC_API_KEY.",
+        )
+    except anthropic.AnthropicError as exc:
+        logger.exception("Anthropic API call failed: %s", exc)
         raise HTTPException(
             status_code=502, detail="The chat assistant is temporarily unavailable."
         )
