@@ -33,10 +33,11 @@ class TemplateContent(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Mutual NDA chat (PL-5)
+# Document drafting chat (PL-5 NDA → PL-6 all document types)
 #
-# These mirror the frontend NdaData model (frontend/src/lib/nda.ts). Fields use
-# camelCase aliases so the JSON shape matches the frontend byte-for-byte.
+# The model is generic: a chosen document type plus a dynamic list of cover-page
+# key-term values and the signing parties. These mirror the frontend types in
+# frontend/src/lib/document.ts; camelCase aliases keep the JSON shape identical.
 # ---------------------------------------------------------------------------
 
 
@@ -45,24 +46,65 @@ class CamelModel(BaseModel):
 
 
 class Party(CamelModel):
+    """A signing party. ``role`` names the party in the agreement (e.g.
+    "Provider", "Customer", "Party 1")."""
+
+    role: str = ""
+    company: str = ""
     name: str = ""
     title: str = ""
-    company: str = ""
     notice_address: str = ""
 
 
-class NdaData(CamelModel):
-    purpose: str = ""
-    effective_date: str = ""
-    term_type: Literal["expires", "untilTerminated"] = "expires"
-    term_years: int = 1
-    confidentiality_type: Literal["years", "perpetuity"] = "years"
-    confidentiality_years: int = 1
-    governing_law: str = ""
-    jurisdiction: str = ""
-    modifications: str = ""
-    party1: Party = Party()
-    party2: Party = Party()
+class FieldValue(CamelModel):
+    """A filled-in cover-page key term, e.g. {key: "Purpose", value: "..."}."""
+
+    key: str
+    value: str = ""
+
+
+class DocumentData(CamelModel):
+    document_type: str = ""  # template id (filename); "" until the AI picks one
+    fields: list[FieldValue] = []
+    parties: list[Party] = []
+
+
+# --- Document definitions (the parsed templates the renderer draws from) ----
+
+
+class DocumentSummary(CamelModel):
+    """A selectable document type in the catalog."""
+
+    id: str  # template filename, e.g. "CSA.md"
+    name: str
+    description: str
+
+
+class DocumentField(CamelModel):
+    """A cover-page key term a document expects the user to fill in."""
+
+    key: str
+
+
+class DocumentSection(CamelModel):
+    """A block of the Standard Terms, generalizing the old NDA STANDARD_TERMS."""
+
+    heading: str = ""
+    body: str = ""
+    indent: int = 0
+
+
+class DocumentDef(CamelModel):
+    id: str
+    name: str
+    title: str
+    fields: list[DocumentField]
+    party_roles: list[str]
+    sections: list[DocumentSection]
+    attribution: str
+
+
+# --- Chat wire types --------------------------------------------------------
 
 
 class ChatMessage(CamelModel):
@@ -72,9 +114,9 @@ class ChatMessage(CamelModel):
 
 class ChatRequest(CamelModel):
     messages: list[ChatMessage]
-    data: NdaData
+    data: DocumentData
 
 
 class ChatResponse(CamelModel):
     reply: str
-    data: NdaData
+    data: DocumentData
