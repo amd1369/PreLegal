@@ -21,16 +21,24 @@ PreLegal/
   scripts/     start.sh / stop.sh to run the stack locally
 ```
 
-- **Frontend** — Next.js 16 + React 19 + Tailwind. The Mutual NDA creator runs
-  client-side (form → live preview → PDF download). A **fake login screen**
-  gates the app: there is no real authentication yet — enter a name to get in.
-- **Backend** — FastAPI exposing a health check and the template catalog,
-  backed by a **temporary SQLite database** via SQLAlchemy. See
-  [backend/README.md](backend/README.md).
+- **Frontend** — Next.js 16 + React 19 + Tailwind. The Mutual NDA creator is a
+  **freeform AI chat**: describe your agreement in plain language and the live
+  preview fills in as you go, then download the PDF (rendered client-side). A
+  **fake login screen** gates the app: there is no real authentication yet —
+  enter a name to get in.
+- **Backend** — FastAPI exposing a health check, the template catalog, and an
+  **AI chat endpoint** (`POST /api/chat`, powered by an LLM via OpenRouter) that
+  drives the NDA conversation, backed by a **temporary SQLite database** via
+  SQLAlchemy. See [backend/README.md](backend/README.md).
 
 ## Getting started
 
 Requirements: Node.js 18+, Python 3.10+.
+
+The AI chat needs an OpenRouter API key. Copy `backend/.env.example` to
+`backend/.env` and set `OPENROUTER_API_KEY` (get one at
+https://openrouter.ai/keys). Without it, the app runs but `/api/chat`
+returns a clear "not configured" error.
 
 Start both servers (bootstraps the Python venv and frontend deps on first run):
 

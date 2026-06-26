@@ -37,6 +37,13 @@ class Settings(BaseSettings):
         "http://127.0.0.1:3000",
     ]
 
+    # OpenRouter configuration for the AI chat (PL-5).
+    # OPENROUTER_API_KEY is read from the environment or backend/.env.
+    openrouter_api_key: str = ""
+    openrouter_base_url: str = "https://openrouter.ai/api/v1"
+    chat_model: str = "openai/gpt-oss-120b:free"
+    chat_max_tokens: int = 4096
+
     model_config = SettingsConfigDict(
         env_file=str(BACKEND_DIR / ".env"),
         env_file_encoding="utf-8",
